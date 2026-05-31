@@ -9,7 +9,7 @@ g = 9.81;
 Qin = 10 / 1000;    % Vstupní průtok [m^3/s]
 T_sim = 20000;
 h_calced = (Qin / S)^2 / (2 * g);
-Qin_step = 30;
+Qin_step = 10;      % v procentech
 A_inv = 1/ A;
 k_valve = S * sqrt(2 * g);
 T_step = 10000;
@@ -71,16 +71,22 @@ h2_nl = out.h_data.Data(:, 4);
 h2_ss = out.h_data.Data(:, 5);
 h2_tf = out.h_data.Data(:, 6);
 
+Qin_plot = out.h_data.Data(:, 7);
+
 %% Graf
-figure('Position', [100, 100, 1000, 400]);
+figure('Position', [100, 100, 1300, 400]);
+
 % Graf 1
-subplot(1, 2, 1); % 1 řádek, 2 sloupce, 1. pozice (vlevo)
+subplot(1, 3, 1); % 1 řádek, 3 sloupce, 1. pozice
+plot(t, Qin_plot, 'k', 'LineWidth', 2); hold on;
+title('Skokový signál');
+xlabel('Čas [s]'); ylabel('Průtok [m^3/s]'); grid on; ylim([0 Qin*Qin_step/100*1.05])
+
+% Graf 2
+subplot(1, 3, 2);
 plot(t, h1_nl, 'k-', 'LineWidth', 1.5); hold on;
 plot(t, h1_ss, 'b--', 'LineWidth', 2);
 plot(t, h1_tf, 'r:', 'LineWidth', 2);
-
-% Přidání skokové změny
-xline(T_step, 'k--', 'Skoková změna Qin (+30 %)', 'LineWidth', 1, 'LabelVerticalAlignment', 'top');
 
 % Formátování grafu 1
 title('Odezva hladiny h_1 na skokovou změnu průtoku');
@@ -89,14 +95,11 @@ ylabel('Výška hladiny h_1 [m]');
 legend('Nelineární model', 'Stavový popis (SS)', 'Přenosová funkce (TF)', 'Location', 'southeast'); 
 grid on;
 
-% Graf 2
-subplot(1, 2, 2);
+% Graf 3
+subplot(1, 3, 3);
 plot(t, h2_nl, 'k-', 'LineWidth', 1.5); hold on;
 plot(t, h2_ss, 'b--', 'LineWidth', 2);
 plot(t, h2_tf, 'r:', 'LineWidth', 2);
-
-% Přidání skokové změny
-xline(T_step, 'k--', 'Skoková změna Qin (+30 %)', 'LineWidth', 1, 'LabelVerticalAlignment', 'top');
 
 % Formátování grafu 2
 title('Odezva hladiny h_2 na skokovou změnu průtoku');
