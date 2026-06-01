@@ -78,7 +78,7 @@ plot(t, Qin_sim, 'm-', 'LineWidth', 1.5);
 title('Vstupní průtok do kaskády');
 xlabel('Čas [s]'); 
 ylabel('Průtok Q_{in} [m^3/s]');
-grid on; 
+grid on; xlim([T_sim*0.002 T_sim]);
 
 % Graf 2.2: Nádrž 1
 subplot(1, 3, 2);
@@ -88,7 +88,7 @@ title('Nádrž 1');
 xlabel('Čas [s]'); 
 ylabel('Výška hladiny h_1 [m]');
 legend('Skutečná hladina (h_1)', 'Žádaná hodnota (h_{SP})', 'Location', 'best'); 
-grid on;
+grid on; xlim([T_sim*0.005 T_sim]);
 
 % Graf 2.3: Nádrž 2
 subplot(1, 3, 3);
@@ -98,4 +98,4 @@ title('Nádrž 2');
 xlabel('Čas [s]'); 
 ylabel('Výška hladiny h_2 [m]');
 legend('Skutečná hladina (h_2)', 'Žádaná hodnota (h_{SP})', 'Location', 'best'); 
-grid on;
+grid on; xlim([T_sim*0.005 T_sim]);

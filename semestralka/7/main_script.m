@@ -71,8 +71,8 @@ mpc_obj.MV(1).Min = 0; mpc_obj.MV(1).Max = 0.01;
 mpc_obj.MV(2).Min = 0; mpc_obj.MV(2).Max = 0.01;
 
 % Nastavení poč. pracovních bodů
-mpc_obj.Model.Nominal.U = [0 0 0]; % [Q1out, Q2out, Qin_MD]
-mpc_obj.Model.Nominal.Y = [0 0];     % [h1, h2]
+mpc_obj.Model.Nominal.U = [Qin Qin Qin]; % [Q1out, Q2out, Qin_MD]
+mpc_obj.Model.Nominal.Y = [h_sp h_sp];     % [h1, h2]
 
 
 %% Simulink
@@ -84,25 +84,38 @@ model_name = 'model';
 out = sim(model_name, 'StopTime', num2str(T_sim));
 
 %% Extrakce dat (12 signálů z MUXu)
-t       = out.h_data.Time;
+t = out.h_data.Time;
 
 % Signály (Žádané hodnoty - setpointy)
-h1_sp   = out.h_data.Data(:, 1);
-h2_sp   = out.h_data.Data(:, 2);
+h1_sp = out.h_data.Data(:, 1);
+h2_sp = out.h_data.Data(:, 2);
 
 % PID data
-z1_pid  = out.h_data.Data(:, 3);
-z2_pid  = out.h_data.Data(:, 4);
-h1_pid  = out.h_data.Data(:, 5);
-h2_pid  = out.h_data.Data(:, 6);
+z1_pid = out.h_data.Data(:, 3);
+z2_pid = out.h_data.Data(:, 4);
+h1_pid = out.h_data.Data(:, 5);
+h2_pid = out.h_data.Data(:, 6);
 Qin_pid = out.h_data.Data(:, 7);
 
 % MPC data
-z1_mpc  = out.h_data.Data(:, 8);
-z2_mpc  = out.h_data.Data(:, 9);
-h1_mpc  = out.h_data.Data(:, 10);
-h2_mpc  = out.h_data.Data(:, 11);
+z1_mpc = out.h_data.Data(:, 8);
+z2_mpc = out.h_data.Data(:, 9);
+h1_mpc = out.h_data.Data(:, 10);
+h2_mpc = out.h_data.Data(:, 11);
 Qin_mpc = out.h_data.Data(:, 12);
+
+% Průtoky
+% PID
+Q12_ref_pid = out.h_data.Data(:, 13);
+Q12_meas_pid = out.h_data.Data(:, 14);
+Qout_ref_pid = out.h_data.Data(:, 15);
+Qout_meas_pid = out.h_data.Data(: ,16);
+
+% MPC
+Q12_ref_mpc = out.h_data.Data(:, 17);
+Q12_meas_mpc = out.h_data.Data(:, 18);
+Qout_ref_mpc = out.h_data.Data(:, 19);
+Qout_meas_mpc = out.h_data.Data(:, 20);
 
 %% Grafy
 
@@ -195,7 +208,7 @@ plot(t, h1_pid, 'b-', 'LineWidth', 1.5);
 plot(t, h1_mpc, 'r-', 'LineWidth', 1.5);
 title('Srovnání řízení hladiny h_1 (Nádrž 1)');
 xlabel('Čas [s]'); ylabel('Výška hladiny [m]');
-legend('Žádaná hodnota (h_{1,SP})', 'Skutečnost (PID)', 'Skutečnost (MPC)', 'Location', 'best');
+legend('Žádaná hodnota (h_{1,SP})', 'PID', 'MPC', 'Location', 'best');
 grid on;
 
 % Subplot 2: Srovnání pro h2
@@ -205,7 +218,7 @@ plot(t, h2_pid, 'b-', 'LineWidth', 1.5);
 plot(t, h2_mpc, 'r-', 'LineWidth', 1.5);
 title('Srovnání řízení hladiny h_2 (Nádrž 2)');
 xlabel('Čas [s]'); ylabel('Výška hladiny [m]');
-legend('Žádaná hodnota (h_{2,SP})', 'Skutečnost (PID)', 'Skutečnost (MPC)', 'Location', 'best');
+legend('Žádaná hodnota (h_{2,SP})', 'PID', 'MPC', 'Location', 'best');
 grid on;
 
 % Graf 6: Přímé srovnání akčních zásahů pro jednotlivé ventily
@@ -231,3 +244,42 @@ xlabel('Čas [s]'); ylabel('Poloha ventilu [-]');
 legend('PID', 'MPC', 'Location', 'best');
 grid on;
 ylim([0 1]);
+
+% Graf 7: Průtoky - žádaný vs. skutečný
+figure('Position', [400, 100, 1200, 800], 'Color', 'w');
+
+% 1. PID Nádrž 1
+subplot(2, 2, 1);
+plot(t, Q12_ref_pid, 'k--', 'LineWidth', 1.5); hold on;
+plot(t, Q12_meas_pid, 'b-', 'LineWidth', 1.5);
+title('PID kaskáda: Průtok Q_{12} (Nádrž 1)');
+xlabel('Čas [s]'); ylabel('Průtok [m^3/s]');
+legend('Žádaný průtok (LC1)', 'Skutečný průtok', 'Location', 'best');
+grid on;
+
+% 2. PID Nádrž 2
+subplot(2, 2, 2);
+plot(t, Qout_ref_pid, 'k--', 'LineWidth', 1.5); hold on;
+plot(t, Qout_meas_pid, 'b-', 'LineWidth', 1.5);
+title('PID kaskáda: Průtok Q_{out} (Nádrž 2)');
+xlabel('Čas [s]'); ylabel('Průtok [m^3/s]');
+legend('Žádaný průtok (LC2)', 'Skutečný průtok', 'Location', 'best');
+grid on;
+
+% 3. MPC Nádrž 1
+subplot(2, 2, 3);
+plot(t, Q12_ref_mpc, 'k--', 'LineWidth', 1.5); hold on;
+plot(t, Q12_meas_mpc, 'r-', 'LineWidth', 1.5);
+title('MPC: Průtok Q_{12} (Nádrž 1)');
+xlabel('Čas [s]'); ylabel('Průtok [m^3/s]');
+legend('Žádaný průtok (MPC)', 'Skutečný průtok', 'Location', 'best');
+grid on;
+
+% 4. MPC Nádrž 2
+subplot(2, 2, 4);
+plot(t, Qout_ref_mpc, 'k--', 'LineWidth', 1.5); hold on;
+plot(t, Qout_meas_mpc, 'r-', 'LineWidth', 1.5);
+title('MPC: Průtok Q_{out} (Nádrž 2)');
+xlabel('Čas [s]'); ylabel('Průtok [m^3/s]');
+legend('Žádaný průtok (MPC)', 'Skutečný průtok', 'Location', 'best');
+grid on;

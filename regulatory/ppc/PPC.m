@@ -1,0 +1,74 @@
+classdef PPC < handle
+    properties
+        % Vypočtené polynomy regulátoru
+        P, Q, R
+        % P - 
+        % Vnitřní paměť pro zpožděné hodnoty
+        u_hist, y_hist
+    end
+    
+    methods
+        function obj = PPC(A, B, D)
+            % Určení stupňů polynomů
+            na = length(A) - 1;
+            nb = length(B) - 1;
+            
+            % Stupně hledaných polynomů P a Q
+            np = nb - 1;
+            nq = na - 1;
+            
+            % Sestavení Sylvestrovy matice
+            N = na + nb; % Velikost čtvercové matice
+            S = zeros(N, N); % Samotná matice
+            
+            % Naplnění levé části matice koeficienty polynomu A
+            for i = 1:(np+1)
+                S(i:i+na, i) = A';
+            end
+            
+            % Naplnění pravé části matice koeficienty polynomu B
+            for i = 1:(nq+1)
+                S(i:i+nb, np+1+i) = B';
+            end
+            
+            % Příprava vektoru pravé strany (polynom D)
+            d_vec = zeros(N, 1);
+            d_vec(1:length(D)) = D';
+            
+            % Vyřešení Diofantické rovnice (Soustava S*x = d_vec)
+            x = S \ d_vec;
+            
+            % Rozdělení výsledku zpět na polynomy P a Q
+            obj.P = x(1 : np+1)';
+            obj.Q = x(np+2 : end)';
+            
+            % Výpočet R
+            obj.R = sum(D) / sum(B);
+            
+            % Inicializace paměti pro diferenční rovnici
+            obj.y_hist = zeros(1, length(obj.Q));
+            obj.u_hist = zeros(1, max(1, length(obj.P) - 1));
+        end
+
+        function u = update(obj, w, y)
+            % Posun historie regulované veličiny y
+            obj.y_hist = [y, obj.y_hist(1:end-1)];
+            
+            sum_Q = sum(obj.Q .* obj.y_hist);
+            
+            if length(obj.P) > 1
+                sum_P = sum(obj.P(2:end) .* obj.u_hist);
+            else
+                sum_P = 0; % Případ, kdy je P jen konstanta p0
+            end
+            
+            % Výpočet aktuálního akčního zásahu u(k)
+            u = (obj.R * w - sum_Q - sum_P) / obj.P(1);
+            
+            % Posun historie akčního zásahu u
+            if length(obj.P) > 1
+                obj.u_hist = [u, obj.u_hist(1:end-1)];
+            end
+        end
+    end
+end
