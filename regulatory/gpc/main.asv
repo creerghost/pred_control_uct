@@ -3,8 +3,8 @@ clear; clc; close all;
 % Prenosova funkce a jeji diskretizace
 s = tf('s');
 Fs = 1.5 / (10*s^2 + 5*s + 1);
-T = 0.5;
-Fz = c2d(Fs, T, 'zoh');
+T_vzork = 0.5;
+Fz = c2d(Fs, T_vzork, 'zoh');
 [num, den] = tfdata(Fz, 'v');
 
 % Polynomy modelu
@@ -12,21 +12,20 @@ A = den;
 B = num;
 
 % Parametry GPC
-N = 20;          % Horizont predikce výstupu
-Nu = 5;          % Horizont řízení (počet kroků změn du)
-lambda = 0.1;    % Penalizace změn akčního zásahu
+N = 10;          % Horizont predikce výstupu
+Nu = 4;          % Horizont řízení (počet kroků změn du)
+lambda = 0.8;    % Penalizace změn akčního zásahu
 
 % Fyzikální omezení akčního členu (např. ventil 0-100%, max skok 10%)
-u_min = 0;   u_max = 1;
-du_min = -0.05; du_max = 0.05;
+u_min = 0;   u_max = 1.5;
+du_min = -0.1; du_max = 0.1;
 
 % Inicializace OOP GPC
 gpc = GPC_Controller(A, B, N, Nu, lambda);
 
 % 3. Simulační parametry
 N_sim = 150;
-w = zeros(N_sim, 1);
-w(floor(N_sim/2)+1:end) = 1; % krok začíná v polovině (po floor(N/2) vzorcích)
+w = [zeros(10,1); ones(N_sim-10, 1)]; % Žádaná hodnota (skok)
 y = zeros(N_sim, 1);
 u = zeros(N_sim, 1);
 
@@ -44,10 +43,17 @@ for k = 3:N_sim
 end
 
 % 5. Vykreslení
+time = (0:N_sim-1) * T_vzork;
 
-time = (0:N_sim-1) * T;
-plot(time, y, 'b-', 'LineWidth', 2); hold on;
+figure('Name', 'GPC s omezeními a Hildrethovým algoritmem');
+subplot(2,1,1);
+plot(time, y, 'b', 'LineWidth', 2); hold on;
 plot(time, w, 'r--', 'LineWidth', 1.5);
-title('Odezva GPC regulátoru');
-legend('Výstup', 'Reference', 'Location', 'best'); grid on;
-ylim([0 1.2])
+title('Odezva systému (y)');
+legend('Výstup', 'Žádaná hodnota', 'Location', 'best'); grid on;
+
+subplot(2,1,2);
+stairs(time, u, 'k', 'LineWidth', 1.5); hold on;
+yline(u_max, 'r:', 'Max Limit');
+title('Akční zásah (u) s omezením rychlosti a rozsahu');
+xlabel('Čas [s]'); grid on;

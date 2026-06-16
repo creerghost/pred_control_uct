@@ -19,8 +19,9 @@ D = poly(poly_eig); % Vytvoří koeficienty polynomu D
 ppc = PPC(A, B, D);
 
 % Nastavení parametrů simulace
-N = 80;
-w = ones(N, 1); % skok
+N = 150;
+w = zeros(N, 1);
+w(floor(N/2)+1:end) = 1;
 y = zeros(N, 1);
 u = zeros(N, 1);
 
@@ -40,5 +41,5 @@ time = (0:N-1) * T;
 plot(time, y, 'b-', 'LineWidth', 2); hold on;
 plot(time, w, 'r--', 'LineWidth', 1.5);
 title('Odezva PPC regulátoru');
-legend('Výstup', 'Reference', 'Location', 'best'); grid on;
+legend('Výstup', 'Skok', 'Location', 'best'); grid on;
 ylim([0 1.2])

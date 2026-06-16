@@ -11,8 +11,9 @@
     Fs = 1.5 / (5*s^2 + 5*s + 1);
     
     T = 0.5;
-    N = 120;
-    w = ones(N, 1);
+    N = 150;
+    w = zeros(N, 1);
+    w(floor(N/2)+1:end) = 1; % krok začíná v polovině (po floor(N/2) vzorcích)
     y = zeros(N, 1);
     u = zeros(N, 1);
     
@@ -40,7 +41,7 @@
     plot(time, w, 'r--', 'LineWidth', 1.5);
     title('Odezva PID regulátoru');
     xlabel('Čas [s]'); ylabel('y(k)');
-    legend('Výstup', 'Reference', 'Location', 'best');
+    legend('Výstup', 'Skok', 'Location', 'best');
     ylim([0 1.2])
     grid on;
 end
