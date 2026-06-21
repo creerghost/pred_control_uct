@@ -27,7 +27,7 @@ classdef GPC_Controller < handle
             obj.B = B;
             
             % 2. Sestavení matice A_mat (odpovídá mat_A v Pythonu)
-            % Dolní trojúhelníková matice s jedničkami na diagonále a koeficienty A_tilde pod ní
+            % Dolní trojúhelníková matice s jedničkami na diagonále a koeficienty A_tilde pod ní.
             A_mat = eye(obj.N);
             for i = 2:length(obj.A_tilde)
                 % Funkce diag nasází koeficienty na příslušnou sub-diagonálu
@@ -36,18 +36,20 @@ classdef GPC_Controller < handle
             
             % 3. Sestavení matice B_mat
             % Dolní trojúhelníková matice s koeficienty polynomu B
-            % Diskrétní modely z c2d mají B(1) = 0. Skutečný čitatel (b1) začíná až na B(2)
+            % Diskrétní modely z c2d mají B(1) = 0. Skutečný čitatel (b1) začíná až na B(2) [2, 4].
             B_mat = zeros(obj.N, obj.N);
             for i = 2:length(obj.B)
                 % Index -(i-2) zajistí, že hodnota b1 (tedy B(2)) padne přesně na hlavní diagonálu
                 B_mat = B_mat + diag(obj.B(i) * ones(obj.N - i + 2, 1), -(i - 2));
             end
             
-            % 4. Výpočet matice dynamiky G
-            % Řeší rovnici A_mat * G_full = B_mat, tedy matematicky G_full = inv(A_mat) * B_mat
+            % 4. Výpočet matice dynamiky G (exaktní řešení soustavy lineárních rovnic)
+            % Operátor levého dělení (\) v MATLABu je přímý ekvivalent np.linalg.solve z Pythonu.
+            % Řeší rovnici A_mat * G_full = B_mat, tedy matematicky G_full = inv(A_mat) * B_mat [3].
             G_full = A_mat \ B_mat;
             
             % 5. Oříznutí matice G pouze na horizont řízení Nu
+            % (Python kód toto ořezání nedělal, protože N=Nu, my si ale šetříme výpočetní výkon)
             obj.G = G_full(:, 1:obj.Nu);
             
             % 6. Příprava matice H pro QP

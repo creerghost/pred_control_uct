@@ -1,6 +1,6 @@
 clear; clc; close all;
 
-% Prenosova funkce a jeji diskretizace
+% Přenosová funkce a jeji diskretizace
 s = tf('s');
 Fs = 1.5 / (10*s^2 + 5*s + 1);
 T = 0.5;
@@ -12,13 +12,13 @@ A = den;
 B = num;
 
 % Parametry GPC
-N = 20;          % Horizont predikce výstupu
-Nu = 5;          % Horizont řízení (počet kroků změn du)
-lambda = 0.1;    % Penalizace změn akčního zásahu
+N = 100; % Horizont predikce
+Nu = 10; % Horizont řízení
+lambda = 0.5; % Penalizace změn akčního zásahu
 
 % Fyzikální omezení akčního členu (např. ventil 0-100%, max skok 10%)
 u_min = 0;   u_max = 1;
-du_min = -0.05; du_max = 0.05;
+du_min = -0.1; du_max = 0.1;
 
 % Inicializace OOP GPC
 gpc = GPC_Controller(A, B, N, Nu, lambda);
