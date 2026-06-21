@@ -37,11 +37,20 @@
     
     % Grafy
     time = (0:N-1) * T;
+    figure;
+    
+    subplot(2,1,1);
     plot(time, y, 'b', 'LineWidth', 1.5); hold on;
     plot(time, w, 'r--', 'LineWidth', 1.5);
-    title('Odezva PID regulátoru');
-    xlabel('Čas [s]'); ylabel('y(k)');
+    title('Odezva PID regulátoru - Výstup');
+    ylabel('y(k)');
     legend('Výstup', 'Skok', 'Location', 'best');
     ylim([0 1.2])
+    grid on;
+    
+    subplot(2,1,2);
+    stairs(time, u, 'k-', 'LineWidth', 1.5);
+    title('Akční zásah u(k)');
+    xlabel('Čas [s]'); ylabel('u(k)');
     grid on;
 end

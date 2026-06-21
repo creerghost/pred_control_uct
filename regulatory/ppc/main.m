@@ -2,6 +2,7 @@ clc; close all;
 
 s = tf('s');
 Fs = 1.5 / (5*s^2 + 5*s + 1);
+pole(Fs)
 T = 0.5;
 
 Fz = c2d(Fs, T, 'zoh');
@@ -38,8 +39,17 @@ for k = 3:N
 end
 
 time = (0:N-1) * T;
+figure;
+
+subplot(2,1,1);
 plot(time, y, 'b-', 'LineWidth', 2); hold on;
 plot(time, w, 'r--', 'LineWidth', 1.5);
-title('Odezva PPC regulátoru');
+title('Odezva PPC regulátoru - Výstup');
 legend('Výstup', 'Skok', 'Location', 'best'); grid on;
 ylim([0 1.2])
+
+subplot(2,1,2);
+stairs(time, u, 'k-', 'LineWidth', 1.5);
+title('Akční zásah u(k)');
+xlabel('Čas [s]'); ylabel('u(k)');
+grid on;

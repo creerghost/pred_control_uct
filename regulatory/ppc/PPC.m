@@ -2,7 +2,6 @@ classdef PPC < handle
     properties
         % Vypočtené polynomy regulátoru
         P, Q, R
-        % P - 
         % Vnitřní paměť pro zpožděné hodnoty
         u_hist, y_hist
     end
