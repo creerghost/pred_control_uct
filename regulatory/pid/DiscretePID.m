@@ -19,9 +19,9 @@ classdef DiscretePID < handle
             obj.Td = Td;
             obj.T = T;
 
-            obj.q0 = -r0 * (1 + T / (2 * Ti) + Td / T);
-            obj.q1 = r0 * (1 - T / (2 * Ti) + 2 * Td / T);
-            obj.q2 = -r0 * (Td / T);
+            obj.q0 = -r0 * (1 + T / (2 * Ti) + Td / T); % vliv aktuální chyby
+            obj.q1 = r0 * (1 - T / (2 * Ti) + 2 * Td / T); % -=- minulé
+            obj.q2 = -r0 * (Td / T); % -=- předminulé
 
             % Inicializace pamětí
             obj.u_prev = 0;
@@ -30,7 +30,7 @@ classdef DiscretePID < handle
         end
         
         function u = update(obj, w, y)
-            % Výpočet akčního zásahu
+            % Výpočet akčního zásahu (z přednásky 2)
             u = obj.u_prev - (obj.q0 + obj.q1 + obj.q2) * w ...
                 + obj.q0 * y + obj.q1 * obj.y_prev1 + obj.q2 * obj.y_prev2;
             

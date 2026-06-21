@@ -42,8 +42,6 @@ classdef PPC < handle
             obj.Q = x(np+2 : end)';
             
             % Výpočet R
-            % upravuje systém aby dosáhl žádánou hodnotu správně
-            % může se ustálit na 0.4 místo 1.0
             obj.R = sum(D) / sum(B);
             
             % Inicializace paměti pro diferenční rovnici
@@ -52,14 +50,13 @@ classdef PPC < handle
         end
 
         function u = update(obj, w, y)
-            % P * u = R * w - Q * y
             % Posun historie regulované veličiny y
             obj.y_hist = [y, obj.y_hist(1:end-1)];
             
-            sum_Q = sum(obj.Q .* obj.y_hist); % Q * Y
+            sum_Q = sum(obj.Q .* obj.y_hist);
             
             if length(obj.P) > 1
-                sum_P = sum(obj.P(2:end) .* obj.u_hist); % P * u
+                sum_P = sum(obj.P(2:end) .* obj.u_hist);
             else
                 sum_P = 0; % Případ, kdy je P jen konstanta p0
             end
