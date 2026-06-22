@@ -14,6 +14,10 @@ classdef GPC_Controller < handle
         y_hist
         du_hist
         u_prev
+        
+        % Matice historie pro volnou odezvu
+        F_y
+        F_u
     end
     
     methods
@@ -28,7 +32,9 @@ classdef GPC_Controller < handle
             
             % y = Gu + Fh = nucená + volná odezva = budoucí zásahy ventilu
             % + reakce systemu na minulé akční zásahy bez ovlivnení nových
-
+            % Pro získání predikčního modelu byla použita metoda inverzní
+            % matice, je velmi dobře popsána v přednášce
+            
             % 2. Sestavení matice A_mat pro budoucí sestavení matice G
             % Dolní trojúhelníková matice s jedničkami na diagonále a koeficienty A_tilde pod ní
             A_mat = eye(obj.N);
@@ -39,7 +45,6 @@ classdef GPC_Controller < handle
             
             % 3. Sestavení matice B_mat pro budoucí sestavení matice G
             % Dolní trojúhelníková matice s koeficienty polynomu B
-            % Diskrétní modely z c2d mají B(1) = 0. Skutečný čitatel začíná až na B(2)
             B_mat = zeros(obj.N, obj.N);
             for i = 2:length(obj.B)
                 % Index -(i-2) zajistí, že hodnota b1 (tedy B(2)) padne přesně na hlavní diagonálu
@@ -66,6 +71,37 @@ classdef GPC_Controller < handle
             % (w - y)^T * (w - y) + lambda * delta_u^T * delta_u
             obj.H = 2 * (obj.G' * obj.G + lambda * eye(Nu));
             
+            % 7. Příprava matic historie pro volnou odezvu
+            m = length(obj.A_tilde) - 1;
+            n_du = length(obj.B) - 1;
+            
+            % Sestavení matice tilde_A (vliv minulých výstupů)
+            t_A = zeros(obj.N, m);
+            a_poly = obj.A_tilde(2:end);
+            for i = 1:obj.N
+                for j = 1:m
+                    idx = (i-1) + (j-1);
+                    if idx < m
+                        t_A(i, j) = -a_poly(idx + 1);
+                    end
+                end
+            end
+            
+            % Sestavení matice tilde_B (vliv minulých vstupů)
+            t_B = zeros(obj.N, n_du);
+            for i = 1:obj.N
+                for j = 1:n_du
+                    i_loop = j + i;
+                    if i_loop <= length(obj.B)
+                        t_B(i, j) = obj.B(i_loop);
+                    end
+                end
+            end
+            
+            % Výpočet finálních matic historie přes inverzní matici
+            obj.F_y = A_mat \ t_A;
+            obj.F_u = A_mat \ t_B;
+            
             % Inicializace paměti
             obj.y_hist = zeros(length(obj.A_tilde)-1, 1);
             obj.du_hist = zeros(length(obj.B)-1, 1);
@@ -78,36 +114,7 @@ classdef GPC_Controller < handle
             
 
             % 1. Výpočet volné odezvy f
-
-            % Ukazuje, co by se s systémem stálo, pokud nedodáme žádný
-            % další signál (du = 0) -> předpoklad budoucí du = 0
-
-            f = zeros(obj.N, 1);
-            y_tmp = obj.y_hist;
-            du_tmp = obj.du_hist;
-            
-            % Simulace N budoucích kroků
-            for k = 1:obj.N
-                y_next = 0;
-                % Vliv setrvačnosti vystupu (A_tilde)
-                for i = 2:length(obj.A_tilde)
-                    if (k - i + 1) > 0 % index ukazuje do budoucnosti ->
-                                       % -> použijí se f která už smýčka
-                                       % sama před chvílí spočítala
-                        y_next = y_next - obj.A_tilde(i) * f(k - i + 1);
-                    else
-                        % sahame do minulosti -> z hodnot y_tmp
-                        y_next = y_next - obj.A_tilde(i) * y_tmp(-(k - i + 1) + 1);
-                    end
-                end
-                % Vliv minulych zasahu vstupu (polynom B) -> du = 0 -> neni budoucnost
-                for i = 2:length(obj.B)
-                    if (k - i + 1) <= 0
-                        y_next = y_next + obj.B(i) * du_tmp(-(k - i + 1) + 1);
-                    end
-                end
-                f(k) = y_next; % chybovy vektor -> w - f
-            end
+            f = obj.F_y * obj.y_hist + obj.F_u * obj.du_hist;
             
             
             % 2. Formulace QP
