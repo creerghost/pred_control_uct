@@ -19,14 +19,14 @@ classdef GPC_Controller < handle
         F_y
         F_u
     end
-    
+    % Methods
     methods
         function obj = GPC_Controller(A, B, N, Nu, lambda)
             obj.N = N;
             obj.Nu = Nu;
             obj.lambda = lambda;
             
-            % 1. CARIMA polynom A_tilde = A * (1 - z^-1)
+            %% 1. CARIMA polynom A_tilde = A * (1 - z^-1)
             obj.A_tilde = conv(A, [1, -1]);
             obj.B = B;
             
@@ -35,7 +35,7 @@ classdef GPC_Controller < handle
             % Pro získání predikčního modelu byla použita metoda inverzní
             % matice, je velmi dobře popsána v přednášce
             
-            % 2. Sestavení matice A_mat pro budoucí sestavení matice G
+            %% 2. Sestavení matice A_mat pro budoucí sestavení matice G
             % Dolní trojúhelníková matice s jedničkami na diagonále a koeficienty A_tilde pod ní
             A_mat = eye(obj.N);
             for i = 2:length(obj.A_tilde)
@@ -43,7 +43,7 @@ classdef GPC_Controller < handle
                 A_mat = A_mat + diag(obj.A_tilde(i) * ones(obj.N - i + 1, 1), -(i - 1));
             end
             
-            % 3. Sestavení matice B_mat pro budoucí sestavení matice G
+            %% 3. Sestavení matice B_mat pro budoucí sestavení matice G
             % Dolní trojúhelníková matice s koeficienty polynomu B
             B_mat = zeros(obj.N, obj.N);
             for i = 2:length(obj.B)
@@ -51,18 +51,18 @@ classdef GPC_Controller < handle
                 B_mat = B_mat + diag(obj.B(i) * ones(obj.N - i + 2, 1), -(i - 2));
             end
             
-            % 4. Výpočet matice dynamiky G
+            %% 4. Výpočet matice dynamiky G
             % G_full = inv(A_mat) * B_mat (maticové dělení)
             G_full = A_mat \ B_mat;
             
-            % 5. Oříznutí matice G pouze na horizont řízení Nu
+            %% 5. Oříznutí matice G pouze na horizont řízení Nu
             obj.G = G_full(:, 1:obj.Nu);
             
             % Matice má koeficienty přechodové charakteristiky. První
             % sloupec je reakce na skok a další jsou to samé, ale posunuté
             % v čase
             
-            % 6. Příprava matice H pro QP
+            %% 6. Příprava matice H pro QP
             
             % Hessova matice = matice druhých derivací
             % Nemění se v čase, a proto můžeme jí vypočíst dřívě
@@ -71,7 +71,7 @@ classdef GPC_Controller < handle
             % (w - y)^T * (w - y) + lambda * delta_u^T * delta_u
             obj.H = 2 * (obj.G' * obj.G + lambda * eye(Nu));
             
-            % 7. Příprava matic historie pro volnou odezvu
+            %% 7. Příprava matic historie pro volnou odezvu
             m = length(obj.A_tilde) - 1;
             n_du = length(obj.B) - 1;
             
@@ -107,17 +107,22 @@ classdef GPC_Controller < handle
             obj.du_hist = zeros(length(obj.B)-1, 1);
             obj.u_prev = 0;
         end
-        
+        % Metoda update - volá se každou iteraci
         function u = update(obj, w_val, y_curr, use_constraints, u_min, u_max, du_min, du_max)
+            % w_val - žádaná hodnota
+            % y_curr - aktuální výstup
+            % use_constraints - flag pro zápnutí omezujících podmínek
+            % u_min, u_max, du_min, du_max - omezující podmínky
+
             % Aktualizace historie výstupu
             obj.y_hist = [y_curr; obj.y_hist(1:end-1)];
             
 
-            % 1. Výpočet volné odezvy f
+            %% 1. Výpočet volné odezvy f
             f = obj.F_y * obj.y_hist + obj.F_u * obj.du_hist;
             
             
-            % 2. Formulace QP
+            %% 2. Formulace QP
 
             % Optimalizujeme účelovou funkci, která minimalizuje kvadrat
             % odchýlky J = (w - y)^T * (w - y) + lambda * du^T * du
@@ -125,7 +130,7 @@ classdef GPC_Controller < handle
             b_qp = 2 * obj.G' * (f - w_vec); % lineární koeficient vektor b
             
 
-            % 3. Zavedení omezení (Matice A_ineq * du <= b_ineq)
+            %% 3. Zavedení omezení (Matice A_ineq * du <= b_ineq)
             I = eye(obj.Nu); % Jednotkový vektor (rychlost)
             T = tril(ones(obj.Nu)); % Dolni troj. matice (poloha)
 
@@ -146,7 +151,7 @@ classdef GPC_Controller < handle
                      (-u_min + obj.u_prev) * ones(obj.Nu, 1)];
             
 
-            % 4. Optimalizace
+            %% 4. Optimalizace
             if use_constraints
                 % Převod notace pro lepší pochopení
                 % Notace jsou z přednášky 8
@@ -167,26 +172,26 @@ classdef GPC_Controller < handle
             % Princip ustupujícího horizontu => bereme jen první zásah
             du_k = du_opt(1);
             
-            % 5. Aktualizace a odeslání akč. zásahu
+            %% 5. Aktualizace a odeslání akč. zásahu
             obj.u_prev = obj.u_prev + du_k;
             obj.du_hist = [du_k; obj.du_hist(1:end-1)];
             
             u = obj.u_prev;
         end
     end
-    
+    %% Skryté metody
     methods (Access = private)
         function x_opt = hildreth(obj, C, p, A, b)
             % Počítáme dU, ale máme spoustu podmínek
             % Pro počítač je to noční můra, a proto chceme to řešit v tzv.
             % duálním prostoru. V tomto prostoru hledáme pouze to, jak
-            % velké mají být pokuty lambda (u), které nesmí být záporné
+            % velké mají být pokuty u, které nesmí být záporné
             
-            % Hildreth-D'Esopova metoda přesně podle skript
+            % Hildreth-D'Esopova metoda
             % Minimalizuje: p^T * x + x^T * C * x
             % Za podmínek:  A * x <= b
             
-            % 1. Výpočet neomezeného řešení
+            %% 1. Výpočet neomezeného řešení
             % x* = -1/2 C^-1 * p
             x_free = -0.5 * (C \ p);
             
@@ -197,7 +202,7 @@ classdef GPC_Controller < handle
                 return;
             end
             
-            % 2. Překlopení problému do duálního prostoru
+            %% 2. Překlopení problému do duálního prostoru
             % G = 1/4 A C^-1 A^T
             % h = 1/2 A C^-1 p + b
             G = 0.25 * A * (C \ A');
@@ -207,9 +212,9 @@ classdef GPC_Controller < handle
             u = zeros(m, 1);
             u_p = zeros(m, 1);
             
-            % 3. Iterační výpočet pro duální proměnné u
+            %% 3. Iterační výpočet pro duální proměnné u
             max_iter = 100;
-            for j = 1:max_iter
+            for k = 1:max_iter
                 for i = 1:m
                     % Součet všech prvků v řádku kromě diagonály
                     sum_Gu = G(i,:) * u - G(i,i) * u(i);
@@ -219,14 +224,14 @@ classdef GPC_Controller < handle
                     u(i) = max(0, w);
                 end
                 
-                % 4. Ustálili se hodnoty?
+                %% 4. Ustálili se hodnoty?
                 if norm(u - u_p) < 1e-6
                     break;
                 end
                 u_p = u;
             end
             
-            % 5. Zpětný převod z duálního do primárního prostoru
+            %% 5. Zpětný převod z duálního do primárního prostoru
             % x* = -1/2 C^-1 (A^T u^* + p)
             x_opt = -0.5 * (C \ (A' * u + p));
         end
